@@ -5,6 +5,7 @@ import sys
 from mod_config import *
 reload(sys)
 sys.setdefaultencoding('utf-8')
+1
 class MysqldbHelper:
     #获取数据库连接
     def getCon(self):
