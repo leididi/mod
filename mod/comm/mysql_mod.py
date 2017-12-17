@@ -3,17 +3,11 @@
 import MySQLdb
 import sys
 from mod_config import *
-from logger import Log
 reload(sys)
 sys.setdefaultencoding('utf-8')
-
-log = Log()
 class MysqldbHelper:
     #获取数据库连接
-    def __init__(self):
-        self.conn =MysqldbHelper.__getCon()
-    @staticmethod
-    def __getCon():
+    def getCon(self):
         try:
             conn=MySQLdb.connect(host=DB_Confg.Host_Sql(),
                                  user=DB_Confg.User_sql(),
@@ -23,160 +17,115 @@ class MysqldbHelper:
                                  charset=DB_Confg.Charset_Sql())
             return conn
         except MySQLdb.Error,e:
-            log.info("Mysqldb Error:%s" %e)
+            print "Mysqldb Error:%s" %e
     #查询方法，使用con.cursor(MySQLdb.cursors.DictCursor),返回结果为字典
-    def Getall(self,sql,param = None):#手动输入sql语句
-        '''
-        @summary: 执行查询，并取出所有结果集
-        @param sql:查询ＳＱＬ，如果有查询条件，请只指定条件列表，并将条件值使用参数[param]传递进来
-        @param param: 可选参数，条件列表值（元组）
-        @return: result list(字典对象)/boolean 查询到的结果集
-        '''
-        cur= self.conn.cursor(MySQLdb.cursors.DictCursor)
+    def input_select(self,sql):#手动输入sql语句
         try:
-            if param == None:
-                rep_sql = cur.execute(sql)
-            else:
-                rep_sql = cur.execute(sql,param)
-            if rep_sql > 0:
-                result = cur.fetchall()
-            else:
-                result = False
-            return result
+            con=self.getCon()
+            cur=con.cursor(MySQLdb.cursors.DictCursor)
+            cur.execute(sql)
+            fc=cur.fetchone()
+            return fc
         except MySQLdb.Error,e:
-            log.info("Mysqldb Error:%s" %e)
-        finally:
-            cur.close()
-    def Getone(self,sql,param = None):
-        '''
-        @summary: 执行查询，并取出第一条
-        @param sql:查询ＳＱＬ，如果有查询条件，请只指定条件列表，并将条件值使用参数[param]传递进来
-        @param param: 可选参数，条件列表值（元组/列表），单个查询返回列表
-        @return: result list/boolean 查询到的结果集
-        '''
-        cur= self.conn.cursor(MySQLdb.cursors.DictCursor)
-        try:
-            if param == None:
-                rep_sql = cur.execute(sql)
-            else:
-                rep_sql = cur.execute(sql,param)
-            if rep_sql > 0:
-                result = cur.fetchone()
-            else:
-                result = False
-            return result
-        except MySQLdb.Error,e:
-            log.info("Mysqldb Error:%s" %e)
-        finally:
-            cur.close()
-    def GetNum(self,sql, num, param = None):
-        '''
-        @summary: 执行查询，并取出num条结果
-        @param sql:查询ＳＱＬ，如果有查询条件，请只指定条件列表，并将条件值使用参数[param]传递进来
-        @param num:取得的结果条数
-        @param param: 可选参数，条件列表值（元组）
-        @return: result list/boolean 查询到的结果集,返回tuple
-        '''
-        cur= self.conn.cursor(MySQLdb.cursors.DictCursor)
-        try:
-            if param == None:
-                rep_sql = cur.execute(sql)
-            else:
-                rep_sql = cur.execute(sql,param)
-            if rep_sql > 0:
-                result = cur.fetchmany(num)
-            else:
-                result = False
-            return result
-        except MySQLdb.Error,e:
-            log.info("Mysqldb Error:%s" %e)
-        finally:
-            cur.close()
-    #带参数的更新方法,eg:sql='insert into pythontest values(%s,%s,%s,now()',params=(6,'C#','good book')
-    def InsertOne(self,sql,value):
-        '''
-        :param sql: 语法 inster into tables_name(a,b,c)vales(%s,%s,%s)
-        :param value: %s的参数
-        :return:
-        '''
-        cur = self.conn.cursor(MySQLdb.cursors.DictCursor)
-        try:
-            cur.execute(sql,value)
-            cur.commit()
-            return self.__getInsertId()
-        except MySQLdb.Error,e:
-            print "Mysql Error %s"%e
-            cur.rollback()
-        finally:
-            cur.close()
-    #使用executemany插入时，数量量超过1M时，会报错，因为mysql中设置了最大的是1M的数据量；这时就需要去修改mysql的设置
-    def IsertMany(self,values,sql):
-        '''
-        :param values:  %s参数,必须是tuple的类型
-        :param sql: mysql语法格式（insert into tables_name(a,b,c) values(%s,%s,%s)
-        :return: 插入的速度是execute的十倍快
-        eg:
-        for i in range(2):
-            values.append((i,i))
-        print len(values)
-        '''
-        cur = self.conn.cursor(MySQLdb.cursors.DictCursor)
-        try:
-            count = cur.executemany(sql,values)
-            cur.commit()
-            return count
-        except MySQLdb.Error,e:
-            log.info("Mysql Error: %s"%e)
-            cur.rollback()
-        finally:
-            cur.close()
-    def __getInsertId(self):
-        """
-        获取当前连接最后一次插入操作生成的id,如果没有则为０
-        """
-        self.conn.execute("SELECT @@IDENTITY AS id")
-        result = self.conn.fetchall()
-        return result[0]['id']
-    def updateByParam(self,sql,params = None):
-        '''cursor.execute("SELECT * FROM t1 WHERE id = %s", (5,))'''
-        try:
-            cur=self.conn.cursor(MySQLdb.cursors.DictCursor)
-            if params == None:
-                count = cur.execute(sql)
-            else:
-                count = cur.execute(sql,params)
-            cur.commit()
-            return count
-        except MySQLdb.Error,e:
-            cur.rollback()
             print "Mysqldb Error:%s" %e
         finally:
             cur.close()
-    def delete_information(self,sql,params = None):
-        cur = self.conn.cursor(MySQLdb.cursors.DictCursor)
+    def parameter_select(self,sql,params):
         try:
-            if  params == None:
-                count =cur.execute(sql)
-            elif type(params) == type(tuple()):
-                count =cur.executemany(sql,params)
-            else:
-                #executemany必须是tuple的类型才可以使用
-                count =cur.executemany(sql,params)
+            con = self.getCon()
+            cur = con.cursor(MySQLdb.cursors.DictCursor)
+            cur.execute(sql,params)
+            fc = cur.fetchall()
+            return fc
+        except MySQLdb.Error,e:
+            print "Mysql Error %s" %e
+        finally:
+            cur.close()
+    #带参数的更新方法,eg:sql='insert into pythontest values(%s,%s,%s,now()',params=(6,'C#','good book')
+    def updateByParam(self,sql,params):
+        '''cursor.execute("SELECT * FROM t1 WHERE id = %s", (5,))'''
+        try:
+            con=self.getCon()
+            cur=con.cursor(MySQLdb.cursors.DictCursor)
+            count=cur.execute(sql,params)
+            con.commit()
+            return count
+        except MySQLdb.Error,e:
+            con.rollback()
+            print "Mysqldb Error:%s" %e
+        finally:
+            cur.close()
+            con.close()
+    #不带参数的更新方法
+    def update(self,sql):
+        try:
+            con=self.getCon()
+            cur=con.cursor()
+            count=cur.execute(sql)
+            con.commit()
+            return count
+        except MySQLdb.Error,e:
+            con.rollback()
+            print "Mysqldb Error:%s" %e
+        finally:
+            cur.close()
+            con.close()
+    def circulation_update(self,sql,params,params1):
+        '''多参数sql语句
+        data = [
+            ('Jane','555-001'),
+            ('Joe', '555-001'),
+            ('John', '555-003')
+            ]
+        stmt = "INSERT INTO employees (name, phone) VALUES ('%s','%s')"
+        cursor.executemany(stmt, data)
+        '''
+        try:
+            con = self.getCon()
+            cur = con.cursor()
+            values = []
+            for i in range(1):
+                values.append((params,params1))
+            cur.executemany(sql,tuple(values))
             cur.commit()
-            return  count
+        except MySQLdb.Error,e:
+            cur.rollback()
+            print "Mysql Error %d :%s" %(e.args[0],e.args[1])
+    #删除数据
+    def delete_information(self,sql):
+        try:
+            con = self.getCon()
+            cur = con.cursor()
+            cur.execute(sql)
+            cur.commit()
         except MySQLdb.Error,e:
             cur.rollback()
             print "Mysql Error %s" %e
         finally:
             cur.close()
+    def delete_infor_param(self,sql,params):
+        try:
+            con = self.getCon()
+            cur = con.cursor()
+            cur.execute(sql,params)
+            cur.commit()
+        except MySQLdb.Error,e:
+            cur.rollback()
+            print "Mysql Error %s" %e
+        finally:
+            cur.close()
+
 if __name__ == "__main__":
     a = MysqldbHelper()
     # sql="select * from phoneuser WHERE account = %s and alias = %s"
-    sql="select * from camera WHERE cid = %s"
+    # sql="select * from camera WHERE cid = '%s'" %290200000011
     # print sql
-    par = ('290200000011')
-    fd = a.Getone(sql,par)
-    print fd["cid"]
+    # # par = ('testmdm1@126.com','rghvfgi')
+    # fd = a.input_select("select * from camera WHERE cid = '%s'" %290200000011)
+    # print fd
+
+    # for row in fd:
+    #     print row[""]
 
 
     #循环插入的例子
@@ -195,3 +144,7 @@ if __name__ == "__main__":
     # conn.commit()
     # cur.close()
     # conn.close()
+    values=[]
+    for i in range(2):
+        values.append((i,i))
+    print len(values)
