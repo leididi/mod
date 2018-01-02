@@ -1,6 +1,7 @@
 #coding:utf-8
 
 import random
+from  random import choice
 
 def generate_verification_code():
     ''' 随机生成6位的验证码 '''
